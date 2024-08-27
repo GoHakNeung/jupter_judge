@@ -558,6 +558,7 @@ def code_check(py) :
   if sum(result) == test_count+1 :
     final_result = True  
     attempts = 0  
+    print(globals_variable.question_name)
     print(tc_green+'정답입니다.'+reset)
   else :
     final_result = False  
