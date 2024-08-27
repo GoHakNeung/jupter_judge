@@ -48,7 +48,7 @@ bc_black = '\033[40m'
 #------------------------------------------------------------------------------#
 # JavaScript를 통해 Python 함수를 호출하는 HTML/JavaScript 코드 생성
 def create_button_with_scratch_cell():
-    global  final_result, attempts, question_info
+    global  attempts, question_info
 
     html_script = """
     <button onclick="createScratchCell()">문제 추천</button>
@@ -64,7 +64,7 @@ def create_button_with_scratch_cell():
     # Python 측에서 호출할 함수를 등록
     def create_scratch_cell():
 
-        next_question = recommend_next_question(globals_variable.question_num, final_result, question_info, attempts)
+        next_question = recommend_next_question(globals_variable.question_num, globals_variable.final_result, question_info, attempts)
         if next_question == '추천 문제가 없습니다.' : 
             _frontend.create_scratch_cell(f"#{next_question}.\n#노트북으로 돌아가세요.")            
         else : 
@@ -109,8 +109,7 @@ def recommend_next_question(current_question_id, is_correct, df, wrong_attempts)
         return recommended_questions['id'].iloc[0]
 
 #------------------------------------------------------------------------------#
-global final_result, attempts
-final_result = False
+global attempts
 attempts = 0
 
 result_df = pd.DataFrame(columns = ['id', 'question_file', 'final_result', 'attempts']) 
@@ -460,7 +459,7 @@ def display_HTML(question_) :
 #------------------------------------------------------------------------------#
 #코드의 정답 여부를 확인하는 함수
 def code_check(py) :
-  global final_result, attempts
+  global attempts
   attempts +=1
     
   for i in range(len(test_set)) :
@@ -556,12 +555,12 @@ def code_check(py) :
             print(bc_yellow+str(i)+reset)
     display_HTML('<HR>')
   if sum(result) == test_count+1 :
-    final_result = True  
+    globals_variable.final_result = True  
     attempts = 0  
     print(globals_variable.question_name_data)
     print(tc_green+'정답입니다.'+reset)
   else :
-    final_result = False  
+    globals_variable.final_result = False  
     print(tc_red+'틀렸습니다.'+reset)
 
   create_button_with_scratch_cell()
