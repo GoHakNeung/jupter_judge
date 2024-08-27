@@ -112,7 +112,7 @@ def recommend_next_question(current_question_id, is_correct, df, wrong_attempts)
 global attempts
 attempts = 0
 
-result_df = pd.DataFrame(columns = ['id', 'question_file', 'final_result', 'attempts']) 
+result_df = pd.DataFrame(columns = ['id', 'question_file', 'final_result', 'total_attempts']) 
 
 #------------------------------------------------------------------------------#
 # 코드를 input/output 리스트에 넣기
@@ -562,6 +562,11 @@ def code_check(py) :
   else :
     globals_variable.final_result = False  
     print(tc_red+'틀렸습니다.'+reset)
+      
+  if globals_variable.question_num in list(result_df['id']):
+    result_df[result_df['id'] == globals_variable.question_num] = [globals_variable.question_num, question_name if globals_variable.question_name in globals() else globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
+  else : 
+    result_df.loc[len(result_df)] = [globals_variable.question_num, question_name if globals_variable.question_name in globals() else globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
 
   create_button_with_scratch_cell()
 
