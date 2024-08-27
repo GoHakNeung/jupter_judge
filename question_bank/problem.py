@@ -28,6 +28,7 @@ def Question(question_number, _type = 'code'):
         with open(question_path, 'r') as f :
             data = f.read()
         globals()[globals_variable.question_name] = data
+        globals_variable.question_name_data = globals()[globals_variable.question_name]
 
         answer_path = '/content/jupyter_judge/question_bank/answer/answer_' + question_number + '.py'
         with open(answer_path, 'r') as f : 
