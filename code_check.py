@@ -109,7 +109,7 @@ def recommend_next_question(current_question_id, is_correct, df, wrong_attempts)
         return recommended_questions['id'].iloc[0]
 
 #------------------------------------------------------------------------------#
-global attempts
+global attempts, result_df
 attempts = 0
 
 result_df = pd.DataFrame(columns = ['id', 'question_file', 'final_result', 'total_attempts']) 
@@ -459,7 +459,7 @@ def display_HTML(question_) :
 #------------------------------------------------------------------------------#
 #코드의 정답 여부를 확인하는 함수
 def code_check(py) :
-  global attempts
+  global attempts, result_df
   attempts +=1
     
   for i in range(len(test_set)) :
