@@ -10,7 +10,7 @@ def Question(question_number, _type = 'code'):
     globals_variable.total_attempts = 0
     
     question_path = '/content/jupyter_judge/question_bank/question/' + question_number+'.html'
-    globals_variable.question_name = 'question_'+question_number
+    question_names = 'question_'+question_number
     question_file = 'question_'+question_number
 
     file_name = '_'+ question_number+'.py'
@@ -27,7 +27,7 @@ def Question(question_number, _type = 'code'):
     else : 
         with open(question_path, 'r') as f :
             data = f.read()
-        globals()[globals_variable.question_name] = data
+        globals_variable.question_name[question_names] = data
 
         answer_path = '/content/jupyter_judge/question_bank/answer/answer_' + question_number + '.py'
         with open(answer_path, 'r') as f : 
