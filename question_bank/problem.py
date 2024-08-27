@@ -21,7 +21,7 @@ def Question(question_number, _type = 'code'):
 
     code_editor = setup_html_js()
 
-    if globals_variable.question_name in globals() : 
+    if question_names in globals() : 
         display(HTML(globals()[globals_variable.question_name] + code_editor))
 
     else : 
