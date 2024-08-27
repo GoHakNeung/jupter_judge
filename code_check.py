@@ -568,6 +568,7 @@ def code_check(py) :
   else : 
     result_df.loc[len(result_df)] = [globals_variable.question_num, question_name if globals_variable.question_name in globals() else globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
 
+  print(result_df)
   create_button_with_scratch_cell()
 
 #------------------------------------------------------------------------------#
