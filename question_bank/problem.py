@@ -10,7 +10,7 @@ def Question(question_number, _type = 'code'):
     globals_variable.total_attempts = 0
     
     question_path = '/content/jupyter_judge/question_bank/question/' + question_number+'.html'
-    question_names = 'question_'+question_number
+    globals_variable.question_name = 'question_'+question_number
     question_file = 'question_'+question_number
 
     file_name = '_'+ question_number+'.py'
@@ -21,13 +21,13 @@ def Question(question_number, _type = 'code'):
 
     code_editor = setup_html_js()
 
-    if question_names in globals() : 
-        display(HTML(question_names + code_editor))
+    if globals_variable.question_name in globals() : 
+        display(HTML(globals()[globals_variable.question_name] + code_editor))
 
     else : 
         with open(question_path, 'r') as f :
             data = f.read()
-        globals_variable.question_name[question_names] = data
+        globals()[globals_variable.question_name] = data
 
         answer_path = '/content/jupyter_judge/question_bank/answer/answer_' + question_number + '.py'
         with open(answer_path, 'r') as f : 
