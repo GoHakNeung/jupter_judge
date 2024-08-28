@@ -8,7 +8,7 @@ def Question(question_number, _type = 'code'):
 
     globals_variable.question_num = question_number
 
-    if question_number in globals_variable.result_df['id'] : 
+    if question_number in globals_variable.result_df['id'].values : 
         print(globals_variable.result_df[globals_variable.result_df['id'] == question_number]['total_attempts'])
         globals_variable.total_attempts = globals_variable.result_df.loc[globals_variable.result_df['id'] == question_number, 'total_attempts'].iloc[0]
         globals_variable.final_result = False
