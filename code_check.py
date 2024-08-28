@@ -568,7 +568,7 @@ def code_check(py) :
   else : 
     globals_variable.result_df.loc[len(globals_variable.result_df)] = [globals_variable.question_num, globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
 
-  print(globals_variable.result_df)
+
   create_button_with_scratch_cell()
 
 #------------------------------------------------------------------------------#
