@@ -22,6 +22,7 @@ def Question(question_number, _type = 'code'):
     code_editor = setup_html_js()
 
     if globals_variable.question_name in globals() : 
+        globals_variable.question_name_data = globals()[globals_variable.question_name]
         display(HTML(globals()[globals_variable.question_name] + code_editor))
 
     else : 
