@@ -109,10 +109,10 @@ def recommend_next_question(current_question_id, is_correct, df, wrong_attempts)
         return recommended_questions['id'].iloc[0]
 
 #------------------------------------------------------------------------------#
-global attempts, result_df
+global attempts
 attempts = 0
 
-result_df = pd.DataFrame(columns = ['id', 'question_file', 'final_result', 'total_attempts']) 
+# result_df = pd.DataFrame(columns = ['id', 'question_file', 'final_result', 'total_attempts']) 
 
 #------------------------------------------------------------------------------#
 # 코드를 input/output 리스트에 넣기
@@ -459,7 +459,7 @@ def display_HTML(question_) :
 #------------------------------------------------------------------------------#
 #코드의 정답 여부를 확인하는 함수
 def code_check(py) :
-  global attempts, result_df
+  global attempts
   attempts +=1
     
   for i in range(len(test_set)) :
@@ -563,12 +563,12 @@ def code_check(py) :
     globals_variable.final_result = False  
     print(tc_red+'틀렸습니다.'+reset)
       
-  if globals_variable.question_num in list(result_df['id']):
-    result_df[result_df['id'] == globals_variable.question_num] = [globals_variable.question_num, globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
+  if globals_variable.question_num in list(globals_variable.result_df['id']):
+    globals_variable.result_df[globals_variable.result_df['id'] == globals_variable.question_num] = [globals_variable.question_num, globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
   else : 
-    result_df.loc[len(result_df)] = [globals_variable.question_num, globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
+    globals_variable.result_df.loc[len(globals_variable.result_df)] = [globals_variable.question_num, globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
 
-  print(result_df)
+  print(globals_variable.result_df)
   create_button_with_scratch_cell()
 
 #------------------------------------------------------------------------------#
