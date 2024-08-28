@@ -564,9 +564,9 @@ def code_check(py) :
     print(tc_red+'틀렸습니다.'+reset)
       
   if globals_variable.question_num in list(result_df['id']):
-    result_df[result_df['id'] == globals_variable.question_num] = [globals_variable.question_num, question_name if globals_variable.question_name in globals() else globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
+    result_df[result_df['id'] == globals_variable.question_num] = [globals_variable.question_num, globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
   else : 
-    result_df.loc[len(result_df)] = [globals_variable.question_num, question_name if globals_variable.question_name in globals() else globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
+    result_df.loc[len(result_df)] = [globals_variable.question_num, globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
 
   print(result_df)
   create_button_with_scratch_cell()
