@@ -1,4 +1,6 @@
 # globals.py
+import pandas as pd
+
 question_num = None
 total_attempts = None
 final_result = False
