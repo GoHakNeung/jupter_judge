@@ -52,7 +52,6 @@ def Question(question_number, _type = 'code'):
     # 콜백 함수 등록
     def save_text(text):
         globals_variable.total_attempts += 1
-        print(globals_variable.result_df)
         file_path = f'/content/{file_name}'
         with open(file_path, 'w') as file:
             file.write(text)
