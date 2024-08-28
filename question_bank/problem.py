@@ -7,9 +7,10 @@ import globals_variable
 def Question(question_number, _type = 'code'):
 
     globals_variable.question_num = question_number
-    
-    if globals_variable.result_df[globals_variable.result_df['id'] == question_number]['total_attempts'].loc[0] != 0 :
+
+    if question_number in list(globals_variable.result_df['id']) : 
         globals_variable.total_attempts = globals_variable.result_df[globals_variable.result_df['id'] == question_number]['total_attempts'].loc[0]
+        globals_variable.final_result = False
     else : 
         globals_variable.total_attempts = 0
     
