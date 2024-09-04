@@ -1,10 +1,9 @@
-# globals.py
 import pandas as pd
 
 question_num = None
 total_attempts = None
 final_result = False
-result_df = pd.DataFrame(columns = ['id', 'question_file', 'final_result', 'total_attempts']) 
+result_df = pd.DataFrame(columns = ['id', 'question_file', 'final_result', 'total_attempts', 'difficulty'])
 
 
 question_name = None
