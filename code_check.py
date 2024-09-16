@@ -12,6 +12,7 @@ import globals_variable
 import re
 
 from google.colab import _frontend, output
+output.clear()
 output.no_vertical_scroll()
 
 import warnings
@@ -224,7 +225,7 @@ def wrong_graph() :
   plt.show()
 
 
-def get_completion(prompt, _model="codellama"):
+def get_completion(prompt, _model="llama3.1"):
     _messages = [
         {"role": "user", 
          "content": prompt}
