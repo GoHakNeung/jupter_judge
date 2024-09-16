@@ -4,15 +4,26 @@ import pandas as pd
 import numpy as np
 from requests import get
 # from oauth2client.service_account import ServiceAccountCredentials
-from IPython.core.display import display, HTML
+from IPython.core.display import display, HTML, Markdown
 from jupyter_judge.question_bank.problem import *
 from jupyter_judge.ColabTurtleClass import *
 from PIL import Image
-from google.colab import _frontend
 import globals_variable
+import re
+
+from google.colab import _frontend, output
+output.no_vertical_scroll()
 
 import warnings
 warnings.filterwarnings(action='ignore')
+
+#----------------------------- ollama 기능을 위함 --------------------------------#
+
+from ollama import Client
+client = Client(host='http://124.57.30.126:11434')
+
+
+#------------------------------------------------------------------------------#
 
 # matplotlib에서 한글을 사용하기 위한 코드
 # 나눔바른고딕을 git에 저장시켜서 다운로드하기. 그래야 나눔 폰트 다운로드에 시간 안씀.
@@ -65,9 +76,9 @@ def create_button_with_scratch_cell():
     def create_scratch_cell():
 
         next_question = recommend_next_question(globals_variable.question_num, globals_variable.final_result, question_info, attempts)
-        if next_question == '추천 문제가 없습니다.' : 
-            _frontend.create_scratch_cell(f"#{next_question}.\n#노트북으로 돌아가세요.")            
-        else : 
+        if next_question == '추천 문제가 없습니다.' :
+            _frontend.create_scratch_cell(f"#{next_question}.\n#노트북으로 돌아가세요.")
+        else :
             _frontend.create_scratch_cell(f"#이 코드를 실행해주세요.\nQuestion('{next_question}')")
 
     output.register_callback('notebook.create_scratch_cell', create_scratch_cell)
@@ -105,14 +116,172 @@ def recommend_next_question(current_question_id, is_correct, df, wrong_attempts)
 
     if recommended_questions.empty:
         return "추천 문제가 없습니다."
-    else : 
+    else :
         return recommended_questions['id'].iloc[0]
 
+#----------------------------진단 기능-----------------------------------------#
+
+
+
+def diagnosis_question():
+  buttons_html = '''
+  <div style="display: flex; justify-content: start;">
+    <button id="viewGraphButton1" onclick="executeGraph1()">정답 결과</button>
+    <script>
+    function executeGraph1() {
+      google.colab.kernel.invokeFunction('notebook.right_graph', [], {});
+      document.getElementById('viewGraphButton1').style.display = 'none'; // 버튼 숨기기
+    }
+    </script>
+    <button id="viewGraphButton2" onclick="executeGraph2()">오답 결과</button>
+    <script>
+    function executeGraph2() {
+      google.colab.kernel.invokeFunction('notebook.wrong_graph', [], {});
+      document.getElementById('viewGraphButton2').style.display = 'none'; // 버튼 숨기기
+    }
+    </script>
+    <button id="viewGraphButton3" onclick="executeGraph3()">학습 진단</button>
+    <script>
+    function executeGraph3() {
+      google.colab.kernel.invokeFunction('notebook.LLM_diagnosis', [], {});
+      document.getElementById('viewGraphButton3').style.display = 'none'; // 버튼 숨기기
+    }
+    </script>
+  </div>
+  '''
+  global right_result, wrong_result
+  # result_df에 난이도 추가하기
+
+  globals_variable.result_df = globals_variable.result_df.merge(question_info[['id', 'difficulty']], on='id', how='left', suffixes=('_a', '_b'))
+  globals_variable.result_df['difficulty'] = globals_variable.result_df['difficulty_b'].combine_first(globals_variable.result_df['difficulty_a'])
+  globals_variable.result_df.drop(columns=['difficulty_a', 'difficulty_b'], inplace=True)
+  globals_variable.result_df['difficulty'].fillna('융합', inplace=True)
+
+  # print(globals_variable.result_df)
+
+  right_result = f'당신은 **{len(globals_variable.result_df)}문제** 중 **{len(globals_variable.result_df[globals_variable.result_df["final_result"]==True])}문제**를 맞췄습니다.'
+  wrong_result = f'당신은 **{len(globals_variable.result_df)}문제** 중 **{len(globals_variable.result_df[globals_variable.result_df["final_result"]==False])}문제**를 틀렸습니다'
+
+  # 결과 및 버튼 출력
+  display(HTML(buttons_html))
+
+# 결과 표시 및 버튼 등록 함수
+def register_functions():
+    from google.colab import output
+    output.register_callback('notebook.right_graph', right_graph)
+    output.register_callback('notebook.wrong_graph', wrong_graph)
+    output.register_callback('notebook.LLM_diagnosis', LLM_diagnosis)
+
+def right_graph() :
+  # 정답에 대한 결과(문항별 시도횟수, 난이도별 정답 수)
+  display(Markdown(right_result))
+
+  plt.figure(figsize = (10,5))
+  x_value = globals_variable.result_df[globals_variable.result_df['final_result']==True]['id']
+  y_value = globals_variable.result_df[globals_variable.result_df['final_result']==True]['total_attempts']
+  plt.subplot(1,2,1)
+  plt.bar(x_value, y_value, color='green', width = 0.5)
+  plt.yticks([1,2,3,4,5])
+  plt.xlabel('문항 번호')
+  plt.ylabel('시도 횟수')
+  plt.title('맞힌 문항별 시도 횟수')
+
+  plt.subplot(1,2,2)
+  a = globals_variable.result_df[globals_variable.result_df['final_result'] == True]['difficulty'].value_counts().index
+  b = globals_variable.result_df[globals_variable.result_df['final_result'] == True]['difficulty'].value_counts().values
+  plt.bar(a,b, color='green', width = 0.7)
+  plt.xlabel('문항 난이도')
+  plt.xticks([0.5,1,2,3,4,5,5.5],labels=['',1,2,3,4,5,''])
+  plt.ylabel('문제 수')
+  plt.yticks(np.arange(0,globals_variable.result_df[globals_variable.result_df['final_result'] == True]['difficulty'].value_counts().values.max()+1.5, 1))
+  plt.title('맞힌 문항별 난이도')
+  plt.show()
+
+  # 오답에 대한 결과(문항별 시도횟수, 난이도별 정답 수)
+
+
+def wrong_graph() :
+  display(Markdown(wrong_result))
+  plt.figure(figsize = (10,5))
+  plt.subplot(1,2,1)
+  x_value = globals_variable.result_df[globals_variable.result_df['final_result']==False]['id']
+  y_value = globals_variable.result_df[globals_variable.result_df['final_result']==False]['total_attempts']
+  plt.bar(x_value, y_value, color='red', width = 0.5)
+  plt.yticks([1,2,3,4,5])
+  plt.xlabel('문항 번호')
+  plt.ylabel('시도 횟수')
+  plt.title('틀린 문항별 시도 횟수')
+
+  plt.subplot(1,2,2)
+  a = globals_variable.result_df[globals_variable.result_df['final_result'] == False]['difficulty'].value_counts().index
+  b = globals_variable.result_df[globals_variable.result_df['final_result'] == False]['difficulty'].value_counts().values
+  plt.bar(a,b, color='red', width = 0.7)
+  plt.xlabel('문항 난이도')
+  plt.xticks([0.5,1,2,3,4,5,5.5],labels=['',1,2,3,4,5,''])
+  plt.yticks(np.arange(0,globals_variable.result_df[globals_variable.result_df['final_result'] == False]['difficulty'].value_counts().values.max()+1.5, 1))
+  plt.ylabel('문제 수')
+  plt.title('틀린 문항별 난이도')
+  plt.show()
+
+
+def get_completion(prompt, _model="codellama"):
+    _messages = [
+        {"role": "user", 
+         "content": prompt}
+        ]
+    response = client.chat(model = _model, messages = _messages)
+    return response['message']['content']
+
+def strip_html_tags(text):
+    """HTML 태그를 제거하는 함수"""
+    clean = re.compile('<.*?>')
+    return re.sub(clean, '', text)
+
+def LLM_diagnosis():
+    right_question_content = ''
+    wrong_question_content = ''
+    
+    if globals_variable.result_df[globals_variable.result_df['final_result'] == True]['question_file'].any():
+
+        true_question = list(globals_variable.result_df[globals_variable.result_df['final_result'] == True]['question_file'])
+        for i in true_question :
+          right_question_content = right_question_content + strip_html_tags(i) + '\t'
+        prompt = f'{right_question_content}는 학생이 맞춘 문제 내용입니다. 문제는 \t으로 구분되어 있습니다. 학생들이 맞은 문제에 대해서 피드백을 주기 위해 3줄 정리해 줘.'
+        response = get_completion(prompt)
+        display(Markdown("**맞춘** 문제에 대한 피드백입니다."))
+        display(Markdown(response))
+
+    if globals_variable.result_df[globals_variable.result_df['final_result'] == False]['question_file'].any():
+
+        false_question = list(globals_variable.result_df[globals_variable.result_df['final_result'] == False]['question_file'])
+        for i in false_question :
+          wrong_question_content = wrong_question_content + strip_html_tags(i) + '\t'
+
+        false_question = globals_variable.result_df[globals_variable.result_df['final_result'] == False]['question_file'].iloc[0]
+        prompt = f'{wrong_question_content}는 학생이 틀린 문제입니다. 문제는 \t으로 구분되어 있습니다. 학생들이 틀린 문제에 대해서 피드백을 주면서, 문제 내용과 관련하여 정답을 맞추기 위해서 어떤 점을 고려해야 하는지 3줄 정리해 줘'
+        response = get_completion(prompt)
+        display(Markdown("**틀린** 문제에 대한 피드백입니다."))
+        display(Markdown(response))
+
+
+
+def register_colab_functions():
+  output.register_callback('notebook.right_graph', right_graph)
+  output.register_callback('notebook.wrong_graph', wrong_graph)
+  output.register_callback('notebook.LLM_diagnosis', LLM_diagnosis)
+
+register_colab_functions()
+
+# 함수 등록
+register_functions()
+
 #------------------------------------------------------------------------------#
+
+
 global attempts
 attempts = 0
 
-# result_df = pd.DataFrame(columns = ['id', 'question_file', 'final_result', 'total_attempts']) 
+# result_df = pd.DataFrame(columns = ['id', 'question_file', 'final_result', 'total_attempts'])
 
 #------------------------------------------------------------------------------#
 # 코드를 input/output 리스트에 넣기
@@ -311,28 +480,28 @@ def syntax_error(test_py) :
   # code_print(test_py)
   error_code = []
   file_name = '/content/syntaxerror.txt'
-  f = open(file_name, 'r') 
+  f = open(file_name, 'r')
   lines = f.readlines()
   for line in lines :
     if line != '' :
       line = line.replace('\n', '')
-      if line.find('SyntaxError') >= 0 : 
+      if line.find('SyntaxError') >= 0 :
         line = line.replace('SyntaxError', '문법오류')
       error_code.append(line)
   f.close()
 
-  error_code_line = int(error_code[-5][error_code[-5].find('line ')+5:])-4  
+  error_code_line = int(error_code[-5][error_code[-5].find('line ')+5:])-4
   print(error_code_line, '번째 줄에 문법오류입니다.')
-  print("="*40) 
-  print(tc_red+error_code[-4]+reset) 
-  for line in error_code[-3: ] : 
+  print("="*40)
+  print(tc_red+error_code[-4]+reset)
+  for line in error_code[-3: ] :
     print(line)
 def modulenotfound_error(test_py) :
   print(error_line(), '번째 줄에 라이브러리를 확인해주세요.')
   print("="*40)
   code_print(test_py)
 
-def import_error(test_py) : 
+def import_error(test_py) :
   print(error_line(), '번째 줄에 import 하려는 라이브러리를 확인해주세요.' )
   print("="*40)
   code_print(test_py)
@@ -381,7 +550,7 @@ def error_check(test_py) :
     sys.stdout = original
     value_error(test_py)
     compile_error = True
-    print('오류메세지 : ',bc_black+str(valueerror)+reset)   
+    print('오류메세지 : ',bc_black+str(valueerror)+reset)
     return
   except IndexError :
     sys.stdout = original
@@ -427,14 +596,14 @@ def error_check(test_py) :
 
 
 
-    compile_error = True  
-    # for i in code[-4:] : 
-    #   if i.find('SyntaxError') >= 0 : 
+    compile_error = True
+    # for i in code[-4:] :
+    #   if i.find('SyntaxError') >= 0 :
     #     i = i.replace('SyntaxError', '문법오류')
     #   print(i)
 
 
-    # print('오류메세지 : ',bc_black+str(valueerror)+reset)    
+    # print('오류메세지 : ',bc_black+str(valueerror)+reset)
     return
   except ModuleNotFoundError :
     sys.stdout = original
@@ -445,7 +614,7 @@ def error_check(test_py) :
     sys.stdout = original
     import_error(test_py)
     compile_error = True
-    return    
+    return
   except :
     sys.stdout = original
     else_error(test_py)
@@ -461,7 +630,7 @@ def display_HTML(question_) :
 def code_check(py) :
   global attempts
   attempts +=1
-    
+
   for i in range(len(test_set)) :
     if test_set[i]['test_file'] == py :
       global answer
@@ -555,18 +724,17 @@ def code_check(py) :
             print(bc_yellow+str(i)+reset)
     display_HTML('<HR>')
   if sum(result) == test_count+1 :
-    globals_variable.final_result = True  
-    attempts = 0  
-    print(globals_variable.question_name_data)
+    globals_variable.final_result = True
+    attempts = 0
     print(tc_green+'정답입니다.'+reset)
   else :
-    globals_variable.final_result = False  
+    globals_variable.final_result = False
     print(tc_red+'틀렸습니다.'+reset)
-      
+
   if globals_variable.question_num in list(globals_variable.result_df['id']):
-    globals_variable.result_df[globals_variable.result_df['id'] == globals_variable.question_num] = [globals_variable.question_num, globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
-  else : 
-    globals_variable.result_df.loc[len(globals_variable.result_df)] = [globals_variable.question_num, globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts]
+    globals_variable.result_df[globals_variable.result_df['id'] == globals_variable.question_num] = [globals_variable.question_num, globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts, None]
+  else :
+    globals_variable.result_df.loc[len(globals_variable.result_df)] = [globals_variable.question_num, globals_variable.question_name_data, globals_variable.final_result, globals_variable.total_attempts, None]
 
 
   create_button_with_scratch_cell()
@@ -631,7 +799,7 @@ def turtle_check(py) :
   #error_check에서 파일을 실행함. 이후 또 실행하면 터틀이 2번 그려짐. 그래서 error_check에서 에러검사 및 실행을 함.(정상 실행되면 그냥 실행함.)
   error_check('turtle_output.py')
   create_button_with_scratch_cell()
-  
+
 #------------------------------------------------------------------------------#
 from google.colab import output
 # 그래프에서 평가 정보를 얻는 것은 info, 평가하는 그래프 종류는 pyplot, 정답과 관련된 것은 A_ 접두사를 붙임.
@@ -857,8 +1025,8 @@ def get_return(info) :
 
 def plot_check(py) :
   file_list = os.listdir("/content/")
-  for file in file_list:    
-    if file == 'submit.png' : 
+  for file in file_list:
+    if file == 'submit.png' :
       os.remove("/content/submit.png")
 
   # 피드백을 주기 위해 그래프에 설명을 넣기 위한 변수들
@@ -965,7 +1133,7 @@ def plot_check(py) :
           if  code[i].find('boxplot') >= 0 :
             A_plot_kind.append('boxplot')
           elif  (code[i].find('h') >=0) and (code[i].find('h') - code[i].find('barh')==3) :
-            if j == 'barh' : 
+            if j == 'barh' :
               A_plot_kind.append('barh')
           # elif  (code[i].find('h') >=0) and (code[i].find('h') - code[i].find('barh')!=3) :
           #   A_plot_kind.append('bar')
@@ -978,7 +1146,7 @@ def plot_check(py) :
           if code[i].find('boxplot') >= 0 :
             plot_kind.append('boxplot')
           elif (code[i].find('h') >= 0) and (code[i].find('h') - code[i].find('barh') == 3) :
-            if j == 'barh' : 
+            if j == 'barh' :
               plot_kind.append('barh')
           # elif (code[i].find('h') >= 0) and (code[i].find('h') - code[i].find('barh') != 3) :
           #   plot_kind.append('bar')
@@ -1129,7 +1297,7 @@ def plot_check(py) :
       display_HTML('<h3 style = "color:red; ">오답입니다.</h2>')
       plot_feedback(A_plot_kind)
 
-  except : 
+  except :
     print('그래프가 생성되지 않았습니다.')
 
   create_button_with_scratch_cell()
@@ -1151,7 +1319,7 @@ def table_arrange(py) :
   global raw_code, code
   raw_code = []
   code = []
-  
+
   file_name = '/content/'+py
 
   # 코드에서 공백제거고 code에 리스트로 저장하기.
@@ -1200,7 +1368,7 @@ table_count = 0
 def table_compare(x, df_answer, color='#fffacd') :
   global table_count
   # print(count)
-  if type(df_answer) == pd.core.series.Series : 
+  if type(df_answer) == pd.core.series.Series :
     df_answer = df_answer.to_frame()
   row = df_answer.shape[0]
   col = df_answer.shape[1]
@@ -1255,10 +1423,10 @@ def table_check(py) :
   # 결과 자가 평가
     df_answer_html = df_answer.to_html(max_cols = 5, max_rows =5, show_dimensions = True)
     df_html = df.to_html(max_cols = 5, max_rows =5, show_dimensions = True)
-    
-    if df.shape == df_answer.shape : 
+
+    if df.shape == df_answer.shape :
       global table_count
-      table_count = 0     
+      table_count = 0
       df_answer_html = df_answer.style.format(precision = 2). to_html(max_rows = 5, max_columns = 5).replace('<table', '<table class = "dataframe"')
       df_html_color = df.style.format(precision=2).applymap(table_compare, df_answer = df_answer).to_html(max_rows = 5, max_columns = 5).replace('<table', '<table class = "dataframe"')
       output_html_color = f'''
@@ -1272,10 +1440,10 @@ def table_check(py) :
           <p >{df_answer_html}</p>
           </div>
       </div>
-      '''      
+      '''
 
       display_HTML(output_html_color)
-    else : 
+    else :
       df_answer_html = df_answer.to_html(max_cols = 5, max_rows =5)
       output_html = f'''
       <div style="display: flex; flex-direction: row;">
@@ -1288,17 +1456,17 @@ def table_check(py) :
           <p >{df_answer_html}</p>
           </div>
       </div>
-      '''      
+      '''
       display_HTML(output_html)
     display_HTML('<HR>')
 # 자동 평가
     #NAN이 있어도 평가하기 위해 추가한 코드
-    if df_answer.isna().to_numpy().sum() : 
+    if df_answer.isna().to_numpy().sum() :
       random_number = random.randint(1, 20141112)
       df.fillna(value = random_number, inplace = True)
       df_answer.fillna(value = random_number, inplace = True)
     #NAN이 있어도 평가하기 위해 추가한 코드
-    
+
     df_numpy = df.to_numpy()
     df_answer_numpy = df_answer.to_numpy()
     if np.array_equal(df_numpy, df_answer_numpy) and np.array_equal(df.columns, df_answer.columns) and np.array_equal(df.index, df_answer.index) :
@@ -1315,10 +1483,10 @@ def table_check(py) :
   # 결과 자가 평가
     # df_answer_html = df_answer.to_html(max_cols = 5, max_rows =5, show_dimensions = True)
     # df_html = df.to_html(max_cols = 5, max_rows =5, show_dimensions = True)
-    
-    if df.shape == df_answer.shape : 
+
+    if df.shape == df_answer.shape :
       # global table_count
-      table_count = 0     
+      table_count = 0
       df_answer_html = df_answer.to_frame().style.format(precision = 2).to_html(max_rows = 5, max_columns = 5).replace('<table', '<table class = "dataframe"')
       df_html_color = df.to_frame().style.format(precision=2).applymap(table_compare, df_answer = df_answer).to_html(max_rows = 5, max_columns = 5).replace('<table', '<table class = "dataframe"')
       output_html_color = f'''
@@ -1332,10 +1500,10 @@ def table_check(py) :
           <p >{df_answer_html}</p>
           </div>
       </div>
-      '''      
+      '''
 
       display_HTML(output_html_color)
-    else : 
+    else :
       df_html = df.to_frame().to_html(max_cols =5, max_rows = 5)
       df_answer_html = df_answer.to_html(max_cols = 5, max_rows =5)
       output_html = f'''
@@ -1349,18 +1517,18 @@ def table_check(py) :
           <p >{df_answer_html}</p>
           </div>
       </div>
-      '''      
+      '''
       display_HTML(output_html)
     display_HTML('<HR>')
 # 자동 평가
     #NAN이 있어도 평가하기 위해 추가한 코드
-    if df_answer.isna().to_numpy().sum() : 
+    if df_answer.isna().to_numpy().sum() :
       random_number = random.randint(1, 20141112)
       df.fillna(value = random_number, inplace = True)
       df_answer.fillna(value = random_number, inplace = True)
     #NAN이 있어도 평가하기 위해 추가한 코드
-    
-   
+
+
     df_numpy = df.to_numpy()
     df_answer_numpy = df_answer.to_numpy()
     if np.array_equal(df_numpy, df_answer_numpy) and np.array_equal(df.index, df_answer.index) :
@@ -1386,7 +1554,7 @@ def table_check(py) :
     display_HTML('<HR>')
     print(tc_green+'정답'+reset)
 
-     
+
   elif df != df_answer and df != '' :
     output_html = f'''
     <div style="display: flex; flex-direction: row;">
