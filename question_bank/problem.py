@@ -5,7 +5,7 @@ from google.colab import output
 import globals_variable
 
 def Question(question_number, _type = 'code'):
-
+    output.no_vertical_scroll()
     globals_variable.question_num = question_number
 
     if question_number in globals_variable.result_df['id'].values : 
