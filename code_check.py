@@ -20,8 +20,42 @@ warnings.filterwarnings(action='ignore')
 
 #----------------------------- ollama 기능을 위함 --------------------------------#
 
-from ollama import Client
-client = Client(host='http://124.57.30.126:11434')
+# from ollama import Client
+# client = Client(host='http://##############')
+# LLM 기능은 아직...
+# def get_completion(prompt, _model="llama3.1"):
+#     _messages = [
+#         {"role": "user", 
+#          "content": prompt}
+#         ]
+#     response = client.chat(model = _model, messages = _messages)
+#     return response['message']['content']
+def LLM_diagnosis():
+    return
+#     right_question_content = ''
+#     wrong_question_content = ''
+    
+#     if globals_variable.result_df[globals_variable.result_df['final_result'] == True]['question_file'].any():
+
+#         true_question = list(globals_variable.result_df[globals_variable.result_df['final_result'] == True]['question_file'])
+#         for i in true_question :
+#           right_question_content = right_question_content + strip_html_tags(i) + '\t'
+#         prompt = f'{right_question_content}는 학생이 맞춘 문제 내용입니다. 문제는 \t으로 구분되어 있습니다. 학생들이 맞은 문제에 대해서 피드백을 주기 위해 3줄 정리해 줘.'
+#         response = get_completion(prompt)
+#         display(Markdown("**맞춘** 문제에 대한 피드백입니다."))
+#         display(Markdown(response))
+
+#     if globals_variable.result_df[globals_variable.result_df['final_result'] == False]['question_file'].any():
+
+#         false_question = list(globals_variable.result_df[globals_variable.result_df['final_result'] == False]['question_file'])
+#         for i in false_question :
+#           wrong_question_content = wrong_question_content + strip_html_tags(i) + '\t'
+
+#         false_question = globals_variable.result_df[globals_variable.result_df['final_result'] == False]['question_file'].iloc[0]
+#         prompt = f'{wrong_question_content}는 학생이 틀린 문제입니다. 문제는 \t으로 구분되어 있습니다. 학생들이 틀린 문제에 대해서 피드백을 주면서, 문제 내용과 관련하여 정답을 맞추기 위해서 어떤 점을 고려해야 하는지 3줄 정리해 줘'
+#         response = get_completion(prompt)
+#         display(Markdown("**틀린** 문제에 대한 피드백입니다."))
+#         display(Markdown(response))
 
 
 #------------------------------------------------------------------------------#
@@ -225,44 +259,13 @@ def wrong_graph() :
   plt.show()
 
 
-def get_completion(prompt, _model="llama3.1"):
-    _messages = [
-        {"role": "user", 
-         "content": prompt}
-        ]
-    response = client.chat(model = _model, messages = _messages)
-    return response['message']['content']
 
 def strip_html_tags(text):
     """HTML 태그를 제거하는 함수"""
     clean = re.compile('<.*?>')
     return re.sub(clean, '', text)
 
-def LLM_diagnosis():
-    right_question_content = ''
-    wrong_question_content = ''
-    
-    if globals_variable.result_df[globals_variable.result_df['final_result'] == True]['question_file'].any():
 
-        true_question = list(globals_variable.result_df[globals_variable.result_df['final_result'] == True]['question_file'])
-        for i in true_question :
-          right_question_content = right_question_content + strip_html_tags(i) + '\t'
-        prompt = f'{right_question_content}는 학생이 맞춘 문제 내용입니다. 문제는 \t으로 구분되어 있습니다. 학생들이 맞은 문제에 대해서 피드백을 주기 위해 3줄 정리해 줘.'
-        response = get_completion(prompt)
-        display(Markdown("**맞춘** 문제에 대한 피드백입니다."))
-        display(Markdown(response))
-
-    if globals_variable.result_df[globals_variable.result_df['final_result'] == False]['question_file'].any():
-
-        false_question = list(globals_variable.result_df[globals_variable.result_df['final_result'] == False]['question_file'])
-        for i in false_question :
-          wrong_question_content = wrong_question_content + strip_html_tags(i) + '\t'
-
-        false_question = globals_variable.result_df[globals_variable.result_df['final_result'] == False]['question_file'].iloc[0]
-        prompt = f'{wrong_question_content}는 학생이 틀린 문제입니다. 문제는 \t으로 구분되어 있습니다. 학생들이 틀린 문제에 대해서 피드백을 주면서, 문제 내용과 관련하여 정답을 맞추기 위해서 어떤 점을 고려해야 하는지 3줄 정리해 줘'
-        response = get_completion(prompt)
-        display(Markdown("**틀린** 문제에 대한 피드백입니다."))
-        display(Markdown(response))
 
 
 
